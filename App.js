@@ -1,6 +1,9 @@
 import { StatusBar } from "expo-status-bar";
 import { useState, useEffect } from "react";
-import { View, StyleSheet, Dimensions, Text } from "react-native";
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity } from "react-native";
+import { Accelerometer } from "expo-sensors";
+import { TouchableWithoutFeedback } from "react-native";
+
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const PLAYER_WIDTH = 50;
@@ -14,12 +17,46 @@ const BLOCK_HEIGHT = 40;
 
 export default function App() {
   const [playerX, setPlayerX] = useState((screenWidth - PLAYER_WIDTH) / 2);
+  const [bullet, setBullet] = useState([])
+
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(20);
+
+    const subscription = Accelerometer.addListener(({ x }) => {
+      const a = x * 30;
+
+      setPlayerX((prevX) => {
+        const move = prevX + a;
+
+        const allowedVal = Math.max(0, Math.min(move, screenWidth - PLAYER_WIDTH));
+        return allowedVal;
+      });
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  const handleBullet = () => {
+    const bullet = {
+      id: Date.now(),
+      x: playerX + (PLAYER_WIDTH - BULLET_WIDTH)/2,
+      y: PLAYER_HEIGHT
+    };
+    setBullet(prev => [...prev, bullet])
+  }
 
   return (
+    <TouchableWithoutFeedback onPress={handleBullet}>
     <View style={styles.container}>
+    {
+      bullet.map((b)=>{
+        <View style={[styles.bullet,{left: b.x,bottom:b.y}]}></View>
+      })
+    }
       <View style={[styles.player, { left: playerX }]} />
       <Text style={styles.instruction}>Tilt your phone to move</Text>
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 
